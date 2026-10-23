@@ -21,6 +21,12 @@ class UvVerb(VerbExtensionPoint):
     def add_arguments(self, *, parser):  # noqa: D102
         subparsers = parser.add_subparsers(dest="uv_command", help="UV commands")
 
+        debian_parser = subparsers.add_parser(
+            "prepare-debian",
+            help="Bundle a Python package using bloom-generated debian/",
+        )
+        debian_parser.add_argument("path", nargs="?", default=".")
+
         # Install subcommand
         install_parser = subparsers.add_parser(
             "install", help="Install dependencies for UV-based packages"
@@ -37,6 +43,16 @@ class UvVerb(VerbExtensionPoint):
     def main(self, *, context):  # noqa: D102
         args = context.args
         logger = logging.getLogger("colcon.uv.cli")
+
+        if getattr(args, "uv_command", None) == "prepare-debian":
+            from .debian import prepare_debian
+
+            try:
+                prepare_debian(args.path)
+            except (OSError, ValueError) as e:
+                logger.error(str(e))
+                return 1
+            return 0
 
         if not hasattr(args, "uv_command") or args.uv_command != "install":
             logger.error("Usage: colcon uv install [options]")

@@ -77,6 +77,8 @@ jobs:
           uv pip install --system --break-system-packages .
 
       - name: Run colcon-uv tests with coverage
+        env:
+          COLCON_UV_TEST_BUNDLE: '1'
         run: |
           cd /ros2_ws/tools/colcon_uv
           echo "Running colcon-uv unit tests with coverage..."

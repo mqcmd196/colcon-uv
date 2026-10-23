@@ -233,7 +233,11 @@ def venv_site_packages(venv_path: Path) -> Optional[Path]:
 
 
 def install_dependencies(
-    project: UvPackage, install_base: Path, merge_install: bool
+    project: UvPackage,
+    install_base: Path,
+    merge_install: bool,
+    *,
+    bundle: bool = False,
 ) -> Path:
     """Install dependencies for a UV package using UV; returns the package's venv."""
     # Handle both contexts:
@@ -263,7 +267,9 @@ def install_dependencies(
         #   3. sys.executable (the Python running colcon / ROS)
         # Without an explicit version, uv defaults to the highest Python on the
         # system, which can break Boost.Python, ROS system packages, etc.
-        python_version = _resolve_python_version(project)
+        python_version = (
+            "/usr/bin/python3" if bundle else _resolve_python_version(project)
+        )
 
         # A version resolved from .python-version / requires-python may select
         # (or download) an interpreter other than the one running colcon. Since
@@ -283,6 +289,15 @@ def install_dependencies(
                     "uv",
                     "venv",
                     "--system-site-packages",
+                    *(
+                        [
+                            "--relocatable",
+                            "--no-managed-python",
+                            "--no-python-downloads",
+                        ]
+                        if bundle
+                        else []
+                    ),
                     "--python",
                     python_version,
                     str(venv_path),
@@ -357,7 +372,7 @@ def install_dependencies(
                     "--python",
                     str(python_exe),
                     *override_args,
-                    "-e",
+                    *([] if bundle else ["-e"]),
                     install_target,
                 ],
                 check=True,
